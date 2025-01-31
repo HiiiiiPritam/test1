@@ -1,7 +1,7 @@
 import { access, mkdir, writeFile, readdir, rm, rmdir } from "fs/promises";
 
 const createDir = async (dirPath) => {
-  console.log("dirPath", dirPath);
+console.log("dirPath", dirPath);
   try {
     await access(dirPath);
   } catch (err) {
@@ -10,14 +10,14 @@ const createDir = async (dirPath) => {
 };
 
 const removeFile = async (filePath) => {
-  console.log("filePath", filePath);
+console.log("filePath", filePath);
   await rm(filePath);
 };
 
 const generateFile = async (extension, code) => {
 
-  console.log("extension", extension); 
-  console.log("code", code);
+console.log("extension", extension); 
+console.log("code", code);
   
   const filename = `${new Date().getTime()}.${extension}`;
   await createDir("codes");
