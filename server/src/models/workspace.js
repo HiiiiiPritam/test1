@@ -17,7 +17,6 @@ const fileSchema = new mongoose.Schema({
   path: String
 });
 
-// New schema for files content array
 const filesContentSchema = new mongoose.Schema({
   path: String,
   file: fileSchema
@@ -32,7 +31,6 @@ const workspaceSchema = new mongoose.Schema({
   fileExplorerData: fileExplorerNodeSchema,
   openFiles: [fileSchema],
   activeFile: fileSchema,
-  // Replace Map with array of files
   filesContent: [filesContentSchema],
   lastUpdated: {
     type: Date,

@@ -20,7 +20,7 @@ interface WorkspacePayload {
 export const workspaceApi = {
   saveWorkspace: async (roomId: string, payload: IDataPayload, filesContentMap: Map<string, IFile>) => {
     try {
-      console.log('Preparing workspace save request:', { roomId, payload });
+      // console.log('Preparing workspace save request:', { roomId, payload });
 
       // Convert Map to array of FileContentItem
       const filesContent = Array.from(filesContentMap.entries()).map(([path, file]) => ({
@@ -46,7 +46,7 @@ export const workspaceApi = {
         body: JSON.stringify(workspaceData),
       });
 
-      console.log('Workspace save response:', response);
+      // console.log('Workspace save response:', response);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -54,7 +54,7 @@ export const workspaceApi = {
       }
 
       const responseData = await response.json();
-      console.log('Workspace save response:', responseData);
+      // console.log('Workspace save response:', responseData);
       return responseData;
     } catch (error) {
       console.error('Unexpected error:', error);
@@ -64,7 +64,7 @@ export const workspaceApi = {
 
   getWorkspace: async (roomId: string) => {
     try {
-      console.log('Fetching workspace:', roomId);
+      // console.log('Fetching workspace:', roomId);
       const response = await fetch(`${BASE_URL}/api/workspace/${roomId}`);
 
       if (!response.ok) {
@@ -73,7 +73,7 @@ export const workspaceApi = {
       }
 
       const responseData = await response.json();
-      console.log('Workspace fetch response:', responseData);
+      // console.log('Workspace fetch response:', responseData);
 
       // Convert array back to Map before returning
       if (responseData && responseData.filesContent) {
