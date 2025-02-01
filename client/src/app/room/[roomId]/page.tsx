@@ -21,7 +21,7 @@ import axios, { AxiosError } from "axios";
 import Loading from "@/app/components/loading/Loading";
 import Chat, { Message } from "@/app/components/chat/Chat";
 import { ChatContext } from "@/context/ChatContext";
-import { log } from "console";
+import { debounce } from 'lodash';
 import { workspaceApi } from "@/services/workspaceApi";
 
 const filesContentMap = new Map<string, IFile>();
@@ -72,30 +72,41 @@ const Page = () => {
   const editorRef = useRef(null);
   const socketRef = useRef<Socket | null>(null);
 
-  function handleEditorChange(content: string | undefined) {
+
+  const debouncedSaveAndEmit = debounce((content: string, socketRef: any, roomId: string | string[], activeFile: IFile, fileExplorerData: IFileExplorerNode, files: IFile[]) => {
     const updatedActiveFile = {
       ...activeFile,
-      content: content ?? "",
+      content: content,
     };
-
+  
     filesContentMap.set(activeFile.path, updatedActiveFile);
     const dataPayload: IDataPayload = {
       fileExplorerData,
       openFiles: files,
       activeFile: updatedActiveFile,
     };
-
-    // Save to backend
     workspaceApi.saveWorkspace(roomId as string, dataPayload, filesContentMap)
       .catch(error => console.error('Error saving workspace:', error));
-
-    // Emit to other clients
-    socketRef.current!.emit(ACTIONS.CODE_CHANGE, {
+  
+    socketRef.current?.emit(ACTIONS.CODE_CHANGE, {
       roomId,
       payload: dataPayload,
     });
+  }, 1500); 
+  
+  function handleEditorChange(content: string | undefined) {
+    if (content === undefined) return;
+    // Call the debounced function with all required parameters
+    debouncedSaveAndEmit(
+      content,
+      socketRef,
+      roomId,
+      activeFile,
+      fileExplorerData,
+      files
+    );
   }
-
+  
   useEffect(() => {
     const loadWorkspace = async () => {
       try {

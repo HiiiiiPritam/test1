@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 mongoose.set("strictQuery", false);
-console.log("mongodb uri", process.env.MONGODB_URL);
+// console.log("mongodb uri", process.env.MONGODB_URL);
 
 const connectDB = () => {
   if (mongoose.connection.readyState === 1) {
