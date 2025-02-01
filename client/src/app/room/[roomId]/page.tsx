@@ -100,22 +100,21 @@ const Page = () => {
     const loadWorkspace = async () => {
       try {
         setLoading(true);
-        console.log("sent for loading work space")
         const workspace = await workspaceApi.getWorkspace(roomId as string);
         if (workspace) {
           setFileExplorerData(workspace.fileExplorerData);
           setFiles(workspace.openFiles);
           setActiveFile(workspace.activeFile);
           
-          // Convert the filesContentMap back to a Map
-          const contentMap = new Map<string, IFile>(Object.entries(workspace.filesContentMap));
-          contentMap.forEach((file, path) => {
-            filesContentMap.set(path, file);
+          const contentMap = new Map(
+            workspace.filesContent.map((item: { path: string; file: IFile }) => [item.path, item.file])
+          );
+          workspace.filesContent.forEach((item: { path: string; file: IFile }) => {
+            filesContentMap.set(item.path, item.file);
           });
         }
       } catch (error) {
         console.error('Error loading workspace:', error);
-        // Keep default state if loading fails
       } finally {
         setLoading(false);
       }
