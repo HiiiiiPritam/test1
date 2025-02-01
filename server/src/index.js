@@ -23,6 +23,6 @@ app.get("/", (req, res) => {
   res.send("Hello, TypeScript with Node.js!");
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
