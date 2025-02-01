@@ -1,14 +1,13 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const fileExplorerNodeSchema = new mongoose.Schema({
   id: String,
   name: String,
   isFolder: Boolean,
   path: String,
-  nodes: [] 
+  nodes: []
 });
 
-// Self-reference for nested nodes
 fileExplorerNodeSchema.add({ nodes: [fileExplorerNodeSchema] });
 
 const fileSchema = new mongoose.Schema({
@@ -16,6 +15,12 @@ const fileSchema = new mongoose.Schema({
   content: String,
   language: String,
   path: String
+});
+
+// New schema for files content array
+const filesContentSchema = new mongoose.Schema({
+  path: String,
+  file: fileSchema
 });
 
 const workspaceSchema = new mongoose.Schema({
@@ -27,14 +32,12 @@ const workspaceSchema = new mongoose.Schema({
   fileExplorerData: fileExplorerNodeSchema,
   openFiles: [fileSchema],
   activeFile: fileSchema,
-  filesContentMap: {
-    type: Map,
-    of: mongoose.Schema.Types.Mixed
-  },
+  // Replace Map with array of files
+  filesContent: [filesContentSchema],
   lastUpdated: {
     type: Date,
     default: Date.now
   }
 });
 
-export const Workspace = mongoose.model('Workspace', workspaceSchema);
+export const Workspace = mongoose.model("Workspace", workspaceSchema);
