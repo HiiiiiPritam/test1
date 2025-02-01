@@ -21,14 +21,15 @@ import axios, { AxiosError } from "axios";
 import Loading from "@/app/components/loading/Loading";
 import Chat, { Message } from "@/app/components/chat/Chat";
 import { ChatContext } from "@/context/ChatContext";
-
+import { log } from "console";
+import { workspaceApi } from "@/services/workspaceApi";
 
 const filesContentMap = new Map<string, IFile>();
 
 const initialActiveFile = {
   name: "index.js",
   language: "javascript",
-  content: `console.log(\`You are awesome 🤟\`)`,
+  content: `console.log(\`You are awesome 🤟\)`,
   path: "/root/index.js",
 };
 
@@ -72,24 +73,81 @@ const Page = () => {
   const socketRef = useRef<Socket | null>(null);
 
   function handleEditorChange(content: string | undefined) {
+    const updatedActiveFile = {
+      ...activeFile,
+      content: content ?? "",
+    };
+
+    filesContentMap.set(activeFile.path, updatedActiveFile);
     const dataPayload: IDataPayload = {
       fileExplorerData,
       openFiles: files,
-      activeFile: {
-        ...activeFile,
-        content: content ?? "",
-      },
+      activeFile: updatedActiveFile,
     };
 
-    filesContentMap.set(activeFile.path, {
-      ...activeFile,
-      content: content ?? "",
-    });
+    // Save to backend
+    workspaceApi.saveWorkspace(roomId as string, dataPayload, filesContentMap)
+      .catch(error => console.error('Error saving workspace:', error));
+
+    // Emit to other clients
     socketRef.current!.emit(ACTIONS.CODE_CHANGE, {
       roomId,
       payload: dataPayload,
     });
   }
+
+  useEffect(() => {
+    const loadWorkspace = async () => {
+      try {
+        setLoading(true);
+        console.log("sent for loading work space")
+        const workspace = await workspaceApi.getWorkspace(roomId as string);
+        if (workspace) {
+          setFileExplorerData(workspace.fileExplorerData);
+          setFiles(workspace.openFiles);
+          setActiveFile(workspace.activeFile);
+          
+          // Convert the filesContentMap back to a Map
+          const contentMap = new Map<string, IFile>(Object.entries(workspace.filesContentMap));
+          contentMap.forEach((file, path) => {
+            filesContentMap.set(path, file);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading workspace:', error);
+        // Keep default state if loading fails
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (roomId) {
+      loadWorkspace();
+    }
+  }, [roomId]);
+
+  useEffect(() => {
+    if (isFileExplorerUpdated && socketRef.current) {
+      const dataPayload: IDataPayload = {
+        fileExplorerData,
+        openFiles: files,
+        activeFile,
+      };
+      
+      // Save to backend
+      workspaceApi.saveWorkspace(roomId as string, dataPayload, filesContentMap)
+        .catch(error => console.error('Error saving workspace:', error));
+
+      // Emit to other clients
+      socketRef.current.emit(ACTIONS.CODE_CHANGE, {
+        roomId,
+        payload: dataPayload,
+      });
+      
+      setIsFileExplorerUpdated(false);
+    }
+  }, [isFileExplorerUpdated, fileExplorerData, files, activeFile, roomId]);
+
 
   function handleEditorDidMount(editor: any, monaco: any) {
     editorRef.current = editor;
@@ -170,9 +228,11 @@ const Page = () => {
     intervalId: NodeJS.Timeout
   ) => {
     try {
+      console.log("calling for status")
       const response = await axios.get(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/code/status/${jobId}`
       );
+      console.log("called for status")
       if (response.status === 200) {
         const status = response.data.job.status;
         setCodeStatus(response.data.job.status);
@@ -208,10 +268,12 @@ const Page = () => {
       language: activeFile.language,
       extension: activeFile.name.split(".")[1],
     };
-    
-    if (!['cpp','py','js'].includes(data.extension)) {
-       toast.error(`Unsupported programming language (${data.language}). Supported languages are C++, Python, and JavaScript.`)
-        return
+
+    if (!["cpp", "py", "js"].includes(data.extension)) {
+      toast.error(
+        `Unsupported programming language (${data.language}). Supported languages are C++, Python, and JavaScript.`
+      );
+      return;
     }
 
     setCodeStatus("");
@@ -236,11 +298,11 @@ const Page = () => {
     } catch (error) {
       console.log(error);
       if ((error as AxiosError).status === 503) {
-        toast.error("Service is temporarily unavailable!")
+        toast.error("Service is temporarily unavailable!");
       } else {
         toast.error("Internal server error!");
       }
-      setLoading(false)
+      setLoading(false);
     }
   };
 
@@ -272,8 +334,8 @@ const Page = () => {
       });
 
       socketRef.current.on(ACTIONS.LOAD_MESSAGES, (chatHistory: Message[]) => {
-            console.log("Loaded messages from server:", chatHistory);
-            setMessages(chatHistory); // Update chat history from server
+        console.log("Loaded messages from server:", chatHistory);
+        setMessages(chatHistory); // Update chat history from server
       });
 
       socketRef.current.on(
@@ -289,7 +351,7 @@ const Page = () => {
       socketRef.current.on(
         ACTIONS.CODE_CHANGE,
         ({ payload }: { payload: IDataPayload }) => {
-          console.log('WS: ',payload)
+          console.log("WS: ", payload);
           if (payload.codeOutputData) {
             setCodeOutput(payload.codeOutputData.output);
             setCodeStatus(payload.codeOutputData.status);
@@ -359,6 +421,7 @@ const Page = () => {
             "&:hover": { color: "#ffe200" },
           }}
         />
+
         <ChatIcon
           onClick={() => handleTabChange(2)}
           sx={{
@@ -370,7 +433,7 @@ const Page = () => {
         />
       </div>
       <div className="w-full md:w-[30%] lg:w-[30%] md:h-screen bg-[#right] border-r border-r-[#605c5c]">
-        {activeTab === 0 && (
+      {activeTab === 0 && (
           <FileExplorer
             fileExplorerData={fileExplorerData}
             setFileExplorerData={setFileExplorerData}
@@ -380,6 +443,8 @@ const Page = () => {
             setFiles={setFiles}
             isFileExplorerUpdated={isFileExplorerUpdated}
             setIsFileExplorerUpdated={setIsFileExplorerUpdated}
+            roomId={roomId as string}
+            filesContentMap={filesContentMap}
           />
         )}
         {activeTab === 1 && (

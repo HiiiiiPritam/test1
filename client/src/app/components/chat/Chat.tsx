@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext } from "react";
 import { ACTIONS } from "@/app/helpers/Actions";
 import Avatar from "react-avatar";
 import { ChatContext } from "@/context/ChatContext";
-import { timeStamp } from "console";
 
 
 interface ChatProps {
